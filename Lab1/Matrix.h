@@ -4,6 +4,7 @@
 #include <complex>
 #include <cstddef>
 #include <stdexcept>
+#include <random>
 
 
 template <typename T>
@@ -102,3 +103,55 @@ Matrix<T>& Matrix<T>::operator=(Matrix&& other) noexcept {
 	}
 	return this*;
 }
+
+int random_value(int low, int high) {
+	static std::mt19937 gen{std::random_device{}()};
+	std::uniform_int_distribution<int> dist(low, high);
+	return dist(gen);
+}
+
+float random_value(float low, float high) {
+	static std::mt19937 gen{ std::random_device{}() };
+	std::uniform_real_distribution<float> dist(low, high);
+	return dist(gen);
+}
+
+double random_value(double low, double high) {
+	static std::mt19937 gen{ std::random_device{}() };
+	std::uniform_real_distribution<double> dist(low, high);
+	return dist(gen);
+}
+
+std::complex<float> random_value(std::complex<float> low, std::complex<float> high) {
+	static std::mt19937 gen{ std::random_device{}() };
+	std::uniform_real_distribution<float> real_dist(low.real(), high.real());
+	std::uniform_real_distribution<float> imag_dist(low.imag(), high.imag());
+	return std::complex<float>(real_dist(gen), imag_dist(gen));
+}
+
+std::complex<double> random_value(std::complex<double> low, std::complex<double> high) {
+	static std::mt19937 gen{ std::random_device{}() };
+	std::uniform_real_distribution<double> real_dist(low.real(), high.real());
+	std::uniform_real_distribution<double> imag_dist(low.imag(), high.imag());
+	return std::complex<double>(real_dist(gen), imag_dist(gen));
+}
+
+template <typename T>
+void Matrix<T>::check_index(std::size_t row, std::size_t col) const {
+	if (row >= rows_ || col >= cols_) {
+		throw std::out_of_range("Matrix index out of range");
+	}
+}
+
+template <typename T>
+T& Matrix<T>::operator()(std::size_t row, std::size_t col) {
+	check_index(row, col);
+	return data_[row * cols_ + col];
+}
+
+template <typename T>
+const T& Matrix<T>::operator()(std::size_t row, std::size_t col) const {
+	check_index(row, col);
+	return data_[row * cols_ + col];
+}
+
