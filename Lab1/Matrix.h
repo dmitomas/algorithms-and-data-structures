@@ -7,35 +7,35 @@
 #include <stdexcept>
 #include <utility>
 
-constexpr double precision = 1e-9;
+static constexpr double precision = 1e-9;
 
 
-int random_value(int low, int high) {
+inline int random_value(int low, int high) {
 	static std::mt19937 gen{ std::random_device{}() };
 	std::uniform_int_distribution<int> dist(low, high);
 	return dist(gen);
 }
 
-float random_value(float low, float high) {
+inline float random_value(float low, float high) {
 	static std::mt19937 gen{ std::random_device{}() };
 	std::uniform_real_distribution<float> dist(low, high);
 	return dist(gen);
 }
 
-double random_value(double low, double high) {
+inline double random_value(double low, double high) {
 	static std::mt19937 gen{ std::random_device{}() };
 	std::uniform_real_distribution<double> dist(low, high);
 	return dist(gen);
 }
 
-std::complex<float> random_value(std::complex<float> low, std::complex<float> high) {
+inline std::complex<float> random_value(std::complex<float> low, std::complex<float> high) {
 	static std::mt19937 gen{ std::random_device{}() };
 	std::uniform_real_distribution<float> real_dist(low.real(), high.real());
 	std::uniform_real_distribution<float> imag_dist(low.imag(), high.imag());
 	return std::complex<float>(real_dist(gen), imag_dist(gen));
 }
 
-std::complex<double> random_value(std::complex<double> low, std::complex<double> high) {
+inline std::complex<double> random_value(std::complex<double> low, std::complex<double> high) {
 	static std::mt19937 gen{ std::random_device{}() };
 	std::uniform_real_distribution<double> real_dist(low.real(), high.real());
 	std::uniform_real_distribution<double> imag_dist(low.imag(), high.imag());
@@ -306,11 +306,11 @@ T Matrix<T>::trace() const {
 		throw std::invalid_argument("The matrix has no trace");
 	}
 	
-	T trace{};
+	T result{};
 	for (std::size_t i = 0; i < rows_; ++i) {
-		trace += (*this)(i, i);
+		result += (*this)(i, i);
 	}
-	return trace;
+	return result;
 }
 
 template <typename U>
@@ -349,3 +349,47 @@ Matrix<T>::Matrix(std::size_t rows, std::size_t cols, const T& low, const T& hig
 	}
 }
 
+
+template <typename T>
+struct Matrix_decomposition {
+	Matrix<T> lower;
+	Matrix<T> upper;
+};
+
+
+template <typename T>
+Matrix_decomposition<T> decompose(const Matrix<T>& a) {
+	if (a.rows() != a.cols()) {
+		throw std::invalid_argument("Matrix decomposition is not possible");
+	}
+	const std::size_t n = a.rows();
+	Matrix<T> lower(n, n, T{});
+	Matrix<T> upper(n, n, T{});
+
+	for (std::size_t i = 0; i < n; ++i) {
+		for (std::size_t j = i; j < n; ++j) {
+			T sum = T{};
+			for (std::size_t k = 0; k < i; ++k) {
+				sum += lower(i, k) * upper(k, j);
+			}
+			upper(i, j) = a(i, j) - sum;
+		}
+		for (std::size_t j = i; j < n; ++j) {
+			if (i == j) {
+				lower(i, i) = T{ 1 };
+			}
+			else {
+				T sum = T{};
+				for (std::size_t k = 0; k < i; ++k) {
+					sum += lower(j, k) * upper(k, i);
+				}
+				if (upper(i, i) == T{}) {
+					throw std::runtime_error("Matrix decomposition is not possible");
+				}
+				lower(j, i) = (a(j, i) - sum) / upper(i, i);
+			}
+		}
+	}
+
+	return { std::move(lower), std::move(upper) };
+}
