@@ -155,3 +155,95 @@ const T& Matrix<T>::operator()(std::size_t row, std::size_t col) const {
 	return data_[row * cols_ + col];
 }
 
+template <typename T>
+void Matrix<T>::check_same_size(const Matrix& other) const {
+	if (rows_ != other.rows_ || cols_ != other.cols_) {
+		throw std::invalid_argument("matrix dimensions do not match");
+	}
+}
+
+template <typename T>
+Matrix<T>& Matrix<T>::operator+=(const Matrix& other) {
+	check_same_size(other);
+	for (std::size_t i = 0; i < rows_ * cols_; ++i) {
+		data_[i] += other.data_[i];
+	}
+	return *this;
+}
+
+template <typename T>
+Matrix<T>& Matrix<T>::operator-=(const Matrix& other) {
+	check_same_size(other);
+	for (std::size_t i = 0; i < rows_ * cols_; ++i) {
+		data_[i] -= other.data_[i];
+	}
+	return *this;
+}
+
+template <typename T>
+Matrix<T>& Matrix<T>::operator*=(const T& scalar) {
+	for (std::size_t i = 0; i < rows_ * cols_; ++i) {
+		data_[i] *= scalar;
+	}
+	return *this;
+}
+
+template <typename T>
+Matrix<T>& Matrix<T>::operator/=(const T& scalar) {
+	if (scalar == T{}) {
+		throw std::invalid_argument("Division by zero");
+	}
+	for (std::size_t i = 0; i < rows_ * cols_; ++i) {
+		data_[i] /= scalar;
+	}
+	return *this;
+}
+
+template <typename T>
+Matrix<T>& operator+(Matrix<T> left, const Matrix<T>& right) {
+	left += right;
+	return left;
+}
+
+template <typename T>
+Matrix<T>& operator-(Matrix<T> left, const Matrix<T>& right) {
+	left -= right;
+	return left;
+}
+
+template <typename T>
+Matrix<T>& operator*(Matrix<T> left, const Matrix<T>& right) {
+	if (left.cols_ != right.rows_) {
+		throw std::invalid_argument("Мatrix cannot be multiplied");
+	}
+
+	Matrix<T> result(left.rows(), right.cols(), T{})
+
+	for (std::size_t i = 0; i < left.rows(); ++i) {
+		for (std::size_t k = 0; k < left.cols(); ++k) {
+			const T& tmp = left(i, k);
+			for (std::size_t = 0; j < right.cols(); ++j) {
+				result(i, j) += tmp * right(k, j);
+			}
+		}
+	}
+	return result;
+}
+
+template <typename T>
+Matrix<T>& operator*(Matrix<T> left, const T& scalar) {
+	left *= scalar;
+	return left;
+}
+
+template <typename T>
+Matrix<T>& operator*(const T& scalar, Matrix<T> left) {
+	left *= scalar;
+	return left;
+}
+
+template <typename T>
+Matrix<T>& operator*(Matrix<T> left, const T& scalar) {
+	left /= scalar;
+	return left;
+}
