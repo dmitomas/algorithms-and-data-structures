@@ -1,20 +1,52 @@
 #pragma once
 
-#include <iostream>
 #include <complex>
 #include <cstddef>
-#include <stdexcept>
+#include <iostream>
 #include <random>
-
+#include <stdexcept>
+#include <utility>
 
 constexpr double precision = 1e-9;
 
 
+int random_value(int low, int high) {
+	static std::mt19937 gen{ std::random_device{}() };
+	std::uniform_int_distribution<int> dist(low, high);
+	return dist(gen);
+}
+
+float random_value(float low, float high) {
+	static std::mt19937 gen{ std::random_device{}() };
+	std::uniform_real_distribution<float> dist(low, high);
+	return dist(gen);
+}
+
+double random_value(double low, double high) {
+	static std::mt19937 gen{ std::random_device{}() };
+	std::uniform_real_distribution<double> dist(low, high);
+	return dist(gen);
+}
+
+std::complex<float> random_value(std::complex<float> low, std::complex<float> high) {
+	static std::mt19937 gen{ std::random_device{}() };
+	std::uniform_real_distribution<float> real_dist(low.real(), high.real());
+	std::uniform_real_distribution<float> imag_dist(low.imag(), high.imag());
+	return std::complex<float>(real_dist(gen), imag_dist(gen));
+}
+
+std::complex<double> random_value(std::complex<double> low, std::complex<double> high) {
+	static std::mt19937 gen{ std::random_device{}() };
+	std::uniform_real_distribution<double> real_dist(low.real(), high.real());
+	std::uniform_real_distribution<double> imag_dist(low.imag(), high.imag());
+	return std::complex<double>(real_dist(gen), imag_dist(gen));
+}
+
 template <typename T>
 class Matrix {
 private:
-	size_t rows_ = 0;
-	size_t cols_ = 0;
+	std::size_t rows_ = 0;
+	std::size_t cols_ = 0;
 	T* data_ = nullptr;
 
 	void allocate_memory(std::size_t rows, std::size_t cols);
@@ -35,8 +67,8 @@ public:
 	Matrix& operator=(Matrix&& other) noexcept;
 	~Matrix();
 
-	size_t rows() const noexcept { return rows_; }
-	size_t cols() const noexcept { return cols_; }
+	std::size_t rows() const noexcept { return rows_; }
+	std::size_t cols() const noexcept { return cols_; }
 
 	T& operator()(std::size_t row, std::size_t col);
 	const T& operator()(std::size_t row, std::size_t col) const;
@@ -64,7 +96,7 @@ void Matrix<T>::allocate_memory(std::size_t rows, std::size_t cols) {
 }
 
 template <typename T>
-void Matrix<T>::deallocate_memory() {
+void Matrix<T>::deallocate_memory() noexcept {
 	delete[] data_;
 	data_ = nullptr;
 	rows_ = 0;
@@ -113,39 +145,7 @@ Matrix<T>& Matrix<T>::operator=(Matrix&& other) noexcept {
 		other.cols_ = 0;
 		other.data_ = nullptr;
 	}
-	return this*;
-}
-
-int random_value(int low, int high) {
-	static std::mt19937 gen{std::random_device{}()};
-	std::uniform_int_distribution<int> dist(low, high);
-	return dist(gen);
-}
-
-float random_value(float low, float high) {
-	static std::mt19937 gen{ std::random_device{}() };
-	std::uniform_real_distribution<float> dist(low, high);
-	return dist(gen);
-}
-
-double random_value(double low, double high) {
-	static std::mt19937 gen{ std::random_device{}() };
-	std::uniform_real_distribution<double> dist(low, high);
-	return dist(gen);
-}
-
-std::complex<float> random_value(std::complex<float> low, std::complex<float> high) {
-	static std::mt19937 gen{ std::random_device{}() };
-	std::uniform_real_distribution<float> real_dist(low.real(), high.real());
-	std::uniform_real_distribution<float> imag_dist(low.imag(), high.imag());
-	return std::complex<float>(real_dist(gen), imag_dist(gen));
-}
-
-std::complex<double> random_value(std::complex<double> low, std::complex<double> high) {
-	static std::mt19937 gen{ std::random_device{}() };
-	std::uniform_real_distribution<double> real_dist(low.real(), high.real());
-	std::uniform_real_distribution<double> imag_dist(low.imag(), high.imag());
-	return std::complex<double>(real_dist(gen), imag_dist(gen));
+	return *this;
 }
 
 template <typename T>
@@ -212,29 +212,29 @@ Matrix<T>& Matrix<T>::operator/=(const T& scalar) {
 }
 
 template <typename T>
-Matrix<T>& operator+(Matrix<T> left, const Matrix<T>& right) {
+Matrix<T> operator+(Matrix<T> left, const Matrix<T>& right) {
 	left += right;
 	return left;
 }
 
 template <typename T>
-Matrix<T>& operator-(Matrix<T> left, const Matrix<T>& right) {
+Matrix<T> operator-(Matrix<T> left, const Matrix<T>& right) {
 	left -= right;
 	return left;
 }
 
 template <typename T>
-Matrix<T>& operator*(Matrix<T> left, const Matrix<T>& right) {
-	if (left.cols_ != right.rows_) {
-		throw std::invalid_argument("Мatrix cannot be multiplied");
+Matrix<T> operator*(Matrix<T> left, const Matrix<T>& right) {
+	if (left.cols() != right.rows()) {
+		throw std::invalid_argument("Matrix cannot be multiplied");
 	}
 
-	Matrix<T> result(left.rows(), right.cols(), T{})
+	Matrix<T> result(left.rows(), right.cols(), T{});
 
 	for (std::size_t i = 0; i < left.rows(); ++i) {
 		for (std::size_t k = 0; k < left.cols(); ++k) {
 			const T& tmp = left(i, k);
-			for (std::size_t = 0; j < right.cols(); ++j) {
+			for (std::size_t j = 0; j < right.cols(); ++j) {
 				result(i, j) += tmp * right(k, j);
 			}
 		}
@@ -243,24 +243,24 @@ Matrix<T>& operator*(Matrix<T> left, const Matrix<T>& right) {
 }
 
 template <typename T>
-Matrix<T>& operator*(Matrix<T> left, const T& scalar) {
+Matrix<T> operator*(Matrix<T> left, const T& scalar) {
 	left *= scalar;
 	return left;
 }
 
 template <typename T>
-Matrix<T>& operator*(const T& scalar, Matrix<T> left) {
+Matrix<T> operator*(const T& scalar, Matrix<T> left) {
 	left *= scalar;
 	return left;
 }
 
 template <typename T>
-Matrix<T>& operator*(Matrix<T> left, const T& scalar) {
+Matrix<T> operator/(Matrix<T> left, const T& scalar) {
 	left /= scalar;
 	return left;
 }
 
-inline bool almost_equal(int a, int b, double epsilon) {
+inline bool almost_equal(int a, int b, double /*epsilon*/) {
 	return a == b;
 }
 
@@ -303,7 +303,7 @@ bool Matrix<T>::operator!=(const Matrix& other) const {
 template <typename T>
 T Matrix<T>::trace() const {
 	if (cols_ != rows_) {
-		throw std::invalid_argument("the matrix has no trace");
+		throw std::invalid_argument("The matrix has no trace");
 	}
 	
 	T trace{};
