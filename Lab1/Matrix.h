@@ -300,3 +300,52 @@ bool Matrix<T>::operator!=(const Matrix& other) const {
 	return !(*this == other);
 }
 
+template <typename T>
+T Matrix<T>::trace() const {
+	if (cols_ != rows_) {
+		throw std::invalid_argument("the matrix has no trace");
+	}
+	
+	T trace{};
+	for (std::size_t i = 0; i < rows_; ++i) {
+		trace += (*this)(i, i);
+	}
+	return trace;
+}
+
+template <typename U>
+std::ostream& operator<<(std::ostream& os, const Matrix<U>& m) {
+	for (std::size_t i = 0; i < m.rows(); ++i) {
+		for (std::size_t j = 0; j < m.cols(); ++j) {
+			os << m(i, j);
+			if (j + 1 < m.cols()) {
+				os << ' ';
+			}
+		}
+		os << '\n';
+	}
+	return os;
+}
+
+template <typename T>
+Matrix<T>::Matrix(std::size_t rows, std::size_t cols, const T& fill_value) {
+	if (rows == 0 || cols == 0) {
+		throw std::invalid_argument("The matrix size must be positive");
+	}
+	allocate_memory(rows, cols);
+	for (std::size_t i = 0; i < rows_ * cols_; ++i) {
+		data_[i] = fill_value;
+	}
+}
+
+template <typename T>
+Matrix<T>::Matrix(std::size_t rows, std::size_t cols, const T& low, const T& high) {
+	if (rows == 0 || cols == 0) {
+		throw std::invalid_argument("The matrix size must be positive");
+	}
+	allocate_memory(rows, cols);
+	for (std::size_t i = 0; i < rows_ * cols_; ++i) {
+		data_[i] = random_value(low, high);
+	}
+}
+
