@@ -7,6 +7,9 @@
 #include <random>
 
 
+constexpr double precision = 1e-9;
+
+
 template <typename T>
 class Matrix {
 private:
@@ -91,6 +94,15 @@ Matrix<T>::Matrix(Matrix&& other) noexcept : rows_(other.rows_), cols_(other.col
 }
 
 template <typename T>
+Matrix<T>& Matrix<T>::operator=(const Matrix& other) {
+	if (this != &other) {
+		Matrix<T> temp(other);
+		*this = std::move(temp);
+	}
+	return *this;
+}
+
+template <typename T>
 Matrix<T>& Matrix<T>::operator=(Matrix&& other) noexcept {
 	if (this != &other) {
 		deallocate_memory();
@@ -158,7 +170,7 @@ const T& Matrix<T>::operator()(std::size_t row, std::size_t col) const {
 template <typename T>
 void Matrix<T>::check_same_size(const Matrix& other) const {
 	if (rows_ != other.rows_ || cols_ != other.cols_) {
-		throw std::invalid_argument("matrix dimensions do not match");
+		throw std::invalid_argument("Matrix dimensions do not match");
 	}
 }
 
@@ -247,3 +259,44 @@ Matrix<T>& operator*(Matrix<T> left, const T& scalar) {
 	left /= scalar;
 	return left;
 }
+
+inline bool almost_equal(int a, int b, double epsilon) {
+	return a == b;
+}
+
+inline bool almost_equal(float a, float b, double epsilon) {
+	const double difference = static_cast<double>(a) - static_cast<double>(b);
+	return difference < epsilon && difference > -epsilon;
+}
+
+inline bool almost_equal(double a, double b, double epsilon) {
+	const double difference = a - b;
+	return difference < epsilon && difference > -epsilon;
+}
+
+inline bool almost_equal(std::complex<float> a, std::complex<float> b, double epsilon) {
+	return almost_equal(a.real(), b.real(), epsilon) && almost_equal(a.imag(), b.imag(), epsilon);
+}
+
+inline bool almost_equal(std::complex<double> a, std::complex<double> b, double epsilon) {
+	return almost_equal(a.real(), b.real(), epsilon) && almost_equal(a.imag(), b.imag(), epsilon);
+}
+
+template <typename T>
+bool Matrix<T>::operator==(const Matrix& other) const {
+	if (rows_ != other.rows_ || cols_ != other.cols_) {
+		return false;
+	}
+	for (std::size_t i = 0; i < rows_ * cols_; ++i) {
+		if (!almost_equal(data_[i], other.data_[i], precision)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+template <typename T>
+bool Matrix<T>::operator!=(const Matrix& other) const {
+	return !(*this == other);
+}
+
